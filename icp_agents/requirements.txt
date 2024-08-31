@@ -2,3 +2,10 @@ requests
 python-dotenv
 pyyaml
 gradio-client
+antlr4-python3-runtime==4.9.3
+leb128>=1.0.4
+waiter>=1.2
+cbor2>=5.4.2
+httpx>=0.22.0
+ecdsa>=0.18.0b2
+mnemonic==0.20
