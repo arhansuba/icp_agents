@@ -94,7 +94,7 @@ class ICPAgent:
                         response_data['planning_text'] = parsed_response.get('planning_text', '')
                         response_data['user_facing_text'] = parsed_response.get('user_facing_text', '')
                     except json.JSONDecodeError as e:
-                        response_data['error'] = e.msg
+                        response_data['error'] = f"JSONDecodeError: {e.msg}"
                         logger.error(f"JSONDecodeError: {e.msg}")
         return response_data
 

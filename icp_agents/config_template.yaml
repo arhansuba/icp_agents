@@ -1,4 +1,4 @@
-# Configuration for Theta Agents SDK
+# Configuration for ICP Agents SDK
 
 # The endpoint for the underlying language model (LLM) service
 llm_endpoint: "https://api.openai.com/v1"

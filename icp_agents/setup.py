@@ -11,7 +11,7 @@ setup(
     include_package_data=True,
     entry_points={
         'console_scripts': [
-            'theta-agents=theta_agents.cli:main',  # Placeholder for potential CLI
+            'icp-agents=icp_agents.cli:main',  # Placeholder for potential CLI
         ],
     },
     classifiers=[

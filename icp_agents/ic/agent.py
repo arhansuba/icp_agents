@@ -7,7 +7,7 @@ from .constants import *
 from .utils import to_request_id
 from .certificate import lookup
 
-DEFAULT_POLL_TIMEOUT_SECS=60.0
+DEFAULT_POLL_TIMEOUT_SECS = 60.0
 
 def sign_request(req, iden):
     req_id = to_request_id(req)
@@ -18,7 +18,7 @@ def sign_request(req, iden):
         'sender_pubkey': sig[0],
         'sender_sig': sig[1]
     }
-    if type(iden) == DelegateIdentity:
+    if isinstance(iden, DelegateIdentity):
         envelop.update({
             "sender_pubkey": iden.der_pubkey,
             "sender_delegation": iden.delegations
@@ -63,7 +63,7 @@ class Agent:
         result = await self.client.read_state_async(canister_id, data)
         return result
 
-    def query_raw(self, canister_id, method_name, arg, return_type = None, effective_canister_id = None):
+    def query_raw(self, canister_id, method_name, arg, return_type=None, effective_canister_id=None):
         req = {
             'request_type': "query",
             'sender': self.identity.sender().bytes,
@@ -74,18 +74,18 @@ class Agent:
         }
         _, data = sign_request(req, self.identity)
         result = self.query_endpoint(canister_id if effective_canister_id is None else effective_canister_id, data)
-        if type(result) != dict or "status" not in result:
-            raise Exception("Malformed result: " + str(result))
+        if not isinstance(result, dict) or "status" not in result:
+            raise ValueError("Malformed result: " + str(result))
         if result['status'] == 'replied':
             arg = result['reply']['arg']
-            if (arg[:4] == b"DIDL"):
+            if arg[:4] == b"DIDL":
                 return decode(arg, return_type)
             else:
                 return arg
         elif result['status'] == 'rejected':
-            raise Exception("Canister reject the call: " + result['reject_message'])
+            raise ValueError("Canister rejected the call: " + result['reject_message'])
 
-    async def query_raw_async(self, canister_id, method_name, arg, return_type = None, effective_canister_id = None):
+    async def query_raw_async(self, canister_id, method_name, arg, return_type=None, effective_canister_id=None):
         req = {
             'request_type': "query",
             'sender': self.identity.sender().bytes,
@@ -96,18 +96,18 @@ class Agent:
         }
         _, data = sign_request(req, self.identity)
         result = await self.query_endpoint_async(canister_id if effective_canister_id is None else effective_canister_id, data)
-        if type(result) != dict or "status" not in result:
-            raise Exception("Malformed result: " + str(result))
+        if not isinstance(result, dict) or "status" not in result:
+            raise ValueError("Malformed result: " + str(result))
         if result['status'] == 'replied':
             arg = result['reply']['arg']
-            if (arg[:4] == b"DIDL"):
+            if arg[:4] == b"DIDL":
                 return decode(arg, return_type)
             else:
                 return arg
         elif result['status'] == 'rejected':
-            raise Exception("Canister reject the call: " + result['reject_message'])
+            raise ValueError("Canister rejected the call: " + result['reject_message'])
 
-    def update_raw(self, canister_id, method_name, arg, return_type = None, effective_canister_id = None, **kwargs):
+    def update_raw(self, canister_id, method_name, arg, return_type=None, effective_canister_id=None, **kwargs):
         req = {
             'request_type': "call",
             'sender': self.identity.sender().bytes,
@@ -119,20 +119,18 @@ class Agent:
         req_id, data = sign_request(req, self.identity)
         eid = canister_id if effective_canister_id is None else effective_canister_id
         _ = self.call_endpoint(eid, req_id, data)
-        # print('update.req_id:', req_id.hex())
         status, result = self.poll(eid, req_id, **kwargs)
         if status == 'rejected':
-            raise Exception('Rejected: ' + result.decode())
+            raise ValueError('Rejected: ' + result.decode())
         elif status == 'replied':
             if result[:4] == b'DIDL':
                 return decode(result, return_type)
             else:
-                # Some canisters don't use DIDL (e.g. they might encode using json instead)
                 return result
         else:
-            raise Exception('Timeout to poll result, current status: ' + str(status))
+            raise TimeoutError('Timeout to poll result, current status: ' + str(status))
 
-    async def update_raw_async(self, canister_id, method_name, arg, return_type = None, effective_canister_id = None, **kwargs):
+    async def update_raw_async(self, canister_id, method_name, arg, return_type=None, effective_canister_id=None, **kwargs):
         req = {
             'request_type': "call",
             'sender': self.identity.sender().bytes,
@@ -144,17 +142,16 @@ class Agent:
         req_id, data = sign_request(req, self.identity)
         eid = canister_id if effective_canister_id is None else effective_canister_id
         _ = await self.call_endpoint_async(eid, req_id, data)
-        # print('update.req_id:', req_id.hex())
         status, result = await self.poll_async(eid, req_id, **kwargs)
         if status == 'rejected':
-            raise Exception('Rejected: ' + result.decode())
-        elif status == 'replied': 
-            if (result[:4] == b"DIDL"):
+            raise ValueError('Rejected: ' + result.decode())
+        elif status == 'replied':
+            if result[:4] == b"DIDL":
                 return decode(result, return_type)
             else:
                 return result
         else:
-            raise Exception('Timeout to poll result, current status: ' + str(status))        
+            raise TimeoutError('Timeout to poll result, current status: ' + str(status))
 
     def read_state_raw(self, canister_id, paths):
         req = {
@@ -171,8 +168,8 @@ class Agent:
             raise ValueError('Could not parse body as read request: invalid type: byte array, expected a sequence')
         try:
             d = cbor2.loads(ret)
-        except:
-            raise ValueError("Unable to decode cbor value: " + ret.decode())
+        except Exception as e:
+            raise ValueError("Unable to decode cbor value: " + str(e))
         cert = cbor2.loads(d['certificate'])
         return cert
 
@@ -199,7 +196,7 @@ class Agent:
         ]
         cert = self.read_state_raw(canister_id, paths)
         status = lookup(['request_status'.encode(), req_id, 'status'.encode()], cert)
-        if (status == None):
+        if status is None:
             return status, cert
         else:
             return status.decode(), cert
@@ -210,7 +207,7 @@ class Agent:
         ]
         cert = await self.read_state_raw_async(canister_id, paths)
         status = lookup(['request_status'.encode(), req_id, 'status'.encode()], cert)
-        if (status == None):
+        if status is None:
             return status, cert
         else:
             return status.decode(), cert
@@ -219,7 +216,7 @@ class Agent:
         status = None
         for _ in wait(delay, timeout):
             status, cert = self.request_status_raw(canister_id, req_id)
-            if status == 'replied' or status == 'done' or status  == 'rejected':
+            if status in ['replied', 'done', 'rejected']:
                 break
         
         if status == 'replied':
@@ -232,12 +229,12 @@ class Agent:
             return status, msg
         else:
             return status, _
-    
+
     async def poll_async(self, canister_id, req_id, delay=1, timeout=DEFAULT_POLL_TIMEOUT_SECS):
         status = None
         for _ in wait(delay, timeout):
             status, cert = await self.request_status_raw_async(canister_id, req_id)
-            if status == 'replied' or status == 'done' or status  == 'rejected':
+            if status in ['replied', 'done', 'rejected']:
                 break
         
         if status == 'replied':
