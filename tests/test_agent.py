@@ -1,8 +1,9 @@
 import asyncio
-from ic.agent import *
-from ic.identity import *
-from ic.client import *
-from ic.candid import Types, encode
+from ic.agent import Agent  # Specify the required classes/functions
+from ic.identity import Identity, Principal  # Specify the required classes/functions
+from ic.client import Client  # Specify the required classes/functions
+from ic.candid import Types, encode  # Keep as is
+import time
 
 client = Client()
 iden = Identity(privkey="833fe62409237b9d62ec77587520911e9a759cec1d19755b7da901b96dca3d42")
