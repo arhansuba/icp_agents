@@ -1,5 +1,5 @@
 import logging
-from icp_agents.config.default_config import global_config
+from config.default_config import global_config
 
 # Configure logging
 logger = logging.getLogger(__name__)
